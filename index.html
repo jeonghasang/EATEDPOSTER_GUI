@@ -1,0 +1,267 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>대체부품 추천 프레임워크</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --navy:#094B99; --blue:#0070C0; --ink:#12233b; --sub:#51627a; --line:#d5deea;
+  --bg:#f3f6fa; --card:#ffffff; --tint:#e8f0fa; --pass:#1e8a57; --passbg:#e3f4ea; --fail:#c2410c; --failbg:#fbeae2; --warn:#a16207;
+  --sans:"Noto Sans KR","Noto Sans CJK KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  color-scheme:dark; --ink:#e4ebf5; --sub:#9aabc2; --line:#2b3a50; --bg:#0e1622; --card:#152033; --tint:#1b2c45;
+  --navy:#6ea8ff; --blue:#4ea3ff; --pass:#4cc98a; --passbg:#143325; --fail:#ff8a5c; --failbg:#3a1f16; --warn:#e3b341;}}
+:root[data-theme="dark"]{
+  color-scheme:dark; --ink:#e4ebf5; --sub:#9aabc2; --line:#2b3a50; --bg:#0e1622; --card:#152033; --tint:#1b2c45;
+  --navy:#6ea8ff; --blue:#4ea3ff; --pass:#4cc98a; --passbg:#143325; --fail:#ff8a5c; --failbg:#3a1f16; --warn:#e3b341;}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:13px;line-height:1.45;padding-inline:16px;padding-block:14px}
+.app{max-width:1240px;margin:0 auto;display:grid;grid-template-columns:250px 1fr;gap:14px}
+.mono{font-family:var(--mono)}
+.num{font-variant-numeric:tabular-nums}
+/* left rail */
+.rail{display:flex;flex-direction:column;gap:10px}
+.brand{background:var(--navy);color:#fff;border-radius:8px;padding:10px 12px}
+:root[data-theme="dark"] .brand{color:#0b1320}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .brand{color:#0b1320}}
+.brand b{display:block;font-size:15px;font-weight:900;letter-spacing:-.01em}
+.brand span{font-size:11px;opacity:.85}
+.lbl{font-size:10.5px;font-weight:700;color:var(--sub);letter-spacing:.06em;text-transform:uppercase}
+.parts{display:grid;gap:6px}
+.part{all:unset;cursor:pointer;display:block;border:1.5px solid var(--line);background:var(--card);border-radius:8px;padding:7px 10px}
+.part:focus-visible,.step:focus-visible,.btn:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.part .mono{font-weight:600;font-size:13px;color:var(--ink)}
+.part small{display:block;color:var(--sub);font-size:11px}
+.part[aria-pressed="true"]{border-color:var(--blue);background:var(--tint)}
+.ctrls{display:flex;gap:6px}
+.btn{all:unset;cursor:pointer;flex:1;text-align:center;font-weight:700;font-size:12.5px;padding:7px 0;border-radius:7px;border:1.5px solid var(--blue);color:var(--blue);background:var(--card)}
+.btn.primary{background:var(--blue);color:#fff}
+:root[data-theme="dark"] .btn.primary{color:#0b1320}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn.primary{color:#0b1320}}
+.funnel{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:grid;gap:5px}
+.frow{display:grid;grid-template-columns:78px 1fr 34px;align-items:center;gap:6px;font-size:11px;color:var(--sub);opacity:.35;transition:opacity .3s}
+.frow.on{opacity:1}
+.fbar{height:9px;border-radius:2px;background:var(--blue);transition:width .6s ease}
+.frow.last .fbar{background:var(--pass)}
+.frow b{color:var(--ink);text-align:right;font-family:var(--mono);font-size:11.5px}
+/* main */
+.main{display:flex;flex-direction:column;gap:10px;min-width:0}
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.step{all:unset;cursor:pointer;position:relative;background:var(--card);border:1.5px solid var(--line);border-radius:8px;padding:6px 9px 6px 34px;min-height:38px}
+.step i{position:absolute;left:8px;top:50%;transform:translateY(-50%);width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-weight:700;font-size:11px;background:var(--tint);color:var(--navy)}
+.step b{display:block;font-size:12px;line-height:1.25}
+.step small{font-size:10.5px;color:var(--sub)}
+.step.done i{background:var(--pass);color:#fff}
+.step.cur{border-color:var(--blue);background:var(--tint)}
+.step.cur i{background:var(--blue);color:#fff}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-height:268px;display:flex;flex-direction:column;gap:9px}
+.ph{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.ph h2{margin:0;font-size:15px;font-weight:900;color:var(--navy);text-wrap:balance}
+.ph .src{font-size:10.5px;color:var(--sub)}
+.tag{display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:var(--tint);color:var(--navy);vertical-align:1px}
+.tag.m{background:#fff4d6;color:var(--warn)}
+:root[data-theme="dark"] .tag.m{background:#3a2e10}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .tag.m{background:#3a2e10}}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:stretch}
+.kv{border:1px solid var(--line);border-radius:7px;padding:6px 10px;flex:1;min-width:150px}
+.kv .lbl{font-size:10px;text-transform:none;letter-spacing:.02em}
+.kv div{font-size:13px;font-weight:700}
+.big{font-family:var(--mono);font-size:22px;font-weight:600;color:var(--navy);line-height:1.1}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{font-size:11px;border:1px solid var(--line);border-radius:999px;padding:1px 8px;background:var(--bg)}
+.chip.mono{font-size:10.5px}
+.cgrp{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.cg{border:1px solid var(--line);border-radius:7px;padding:6px 8px}
+.cg h4{margin:0 0 4px;font-size:11.5px;color:var(--navy)}
+.cg ul{margin:0;padding-left:14px;font-size:11.2px}
+.flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.arrow{color:var(--sub);font-weight:700}
+.dots{display:flex;flex-wrap:wrap;gap:4px}
+.dot{width:15px;height:15px;border-radius:3px;background:var(--failbg);border:1.5px solid var(--fail);cursor:help}
+.dot.p{background:var(--pass);border-color:var(--pass)}
+.dot.sel{outline:2px solid var(--ink);outline-offset:1px}
+.info{font-size:11.5px;border-left:3px solid var(--blue);padding:4px 9px;background:var(--bg);border-radius:0 6px 6px 0;min-height:28px}
+.info .mono{font-weight:600}
+.split{display:grid;grid-template-columns:1.25fr 1fr;gap:12px}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:11.5px}
+th{font-size:10px;color:var(--sub);font-weight:700;text-align:right;padding:3px 6px;border-bottom:1.5px solid var(--line);white-space:nowrap}
+td{padding:2.5px 6px;text-align:right;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;white-space:nowrap}
+th:nth-child(-n+2),td:nth-child(-n+2){text-align:left}
+tr.base td{color:var(--sub);font-style:italic}
+tr.top td{background:var(--passbg);font-weight:700}
+.neg{color:var(--pass)} .pos{color:var(--fail)}
+.scb{display:inline-block;height:7px;border-radius:2px;background:var(--blue);vertical-align:1px;margin-right:4px}
+tr.top .scb{background:var(--pass)}
+.foot{grid-column:1/-1;font-size:10.5px;color:var(--sub);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.pill{font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:999px}
+.pill.p{background:var(--passbg);color:var(--pass)} .pill.f{background:var(--failbg);color:var(--fail)}
+.fade{animation:fd .35s ease}
+@keyframes fd{from{opacity:.25;transform:translateY(3px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){.fade{animation:none}.fbar{transition:none}}
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  .steps{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .step{padding:30px 4px 6px;text-align:center}
+  .step i{left:50%;top:6px;transform:translateX(-50%)}
+  .step small{display:none}
+  .step b{font-size:10.5px}
+  .split,.cgrp{grid-template-columns:1fr}
+  .parts{grid-template-columns:1fr 1fr}
+}
+</style></head><body style="margin:0">
+
+<div class="app" id="app">
+  <aside class="rail">
+    <div class="brand"><b>대체부품 추천 프레임워크</b><span>foxBMS 2 사례 적용 결과</span></div>
+    <div class="lbl">① 대상 부품 선택</div>
+    <div class="parts" id="parts"></div>
+    <div class="ctrls">
+      <button class="btn primary" id="run" type="button">▶ 전체 실행</button>
+      <button class="btn" id="next" type="button">다음 단계</button>
+    </div>
+    <div class="lbl">후보 축소 과정</div>
+    <div class="funnel" id="funnel"></div>
+  </aside>
+  <main class="main">
+    <nav class="steps" id="steps" aria-label="프레임워크 단계"></nav>
+    <section class="panel" id="panel" aria-live="polite"></section>
+  </main>
+  <div class="foot"><span>데이터: 연구 파이프라인 실행 캐시 (DigiKey Product Information API v4 조회값 · Qwen-VL 규격서 판정, 2026년 8월). 실시간 API 호출이 아닌 재생 모드입니다.</span></div>
+</div>
+
+<script>
+const TCAQ={"FXL6408UMX": ["smbus_compatibility", "low_standby_current", "400khz_fast_i2c_bus", "polarity_inversion_register", "no_glitch_on_power_up", "noise_filter_on_scl_sda", "latch_up_performance_exceeds_100ma_per_jesd78_class_ii"], "PI4IOE5V6408ZTAEX": ["smbus_compatibility", "5v_tolerant_io_ports", "polarity_inversion_register", "noise_filter_on_scl_sda", "latched_outputs_with_high_current_drive"], "PCA6408AHKX": [], "PI4IOE5V9554ALEX": ["bidirectional_voltage_translation", "active_low_reset_input", "latched_outputs_with_high_current_drive", "latch_up_performance_exceeds_100ma_per_jesd78_class_ii"], "PCAL6408AHKX": [], "PCA6408ABSHP": [], "TCA6408ARGTR": [], "PCA6408APW,118": [], "TCA9554PWR": ["bidirectional_voltage_translation", "active_low_reset_input"], "PCAL6408APWJ": [], "PCAL6408ABSHP": [], "PCAL6408AEX1Z": [], "TCA9534PWR": ["bidirectional_voltage_translation", "active_low_reset_input"], "TCAL6408RSVR": ["bidirectional_voltage_translation", "5v_tolerant_io_ports"], "PCF8574ADWR": ["bidirectional_voltage_translation", "low_standby_current", "5v_tolerant_io_ports", "400khz_fast_i2c_bus", "hardware_address_pin", "active_low_reset_input", "polarity_inversion_register", "noise_filter_on_scl_sda"], "MCP23009T-E/MG": ["smbus_compatibility", "bidirectional_voltage_translation", "no_glitch_on_power_up", "noise_filter_on_scl_sda", "latched_outputs_with_high_current_drive", "latch_up_performance_exceeds_100ma_per_jesd78_class_ii"], "MCP23009-E/MG": ["smbus_compatibility", "bidirectional_voltage_translation", "no_glitch_on_power_up", "noise_filter_on_scl_sda", "latched_outputs_with_high_current_drive", "latch_up_performance_exceeds_100ma_per_jesd78_class_ii"], "PCA9554CBSHP": ["bidirectional_voltage_translation", "active_low_reset_input"], "PCA9554ARGTR": ["bidirectional_voltage_translation", "low_standby_current", "active_low_reset_input", "noise_filter_on_scl_sda"], "PCA9554BPWJ": ["bidirectional_voltage_translation", "active_low_reset_input"], "PCA9534PWR": ["bidirectional_voltage_translation", "active_low_reset_input"], "PCA9538ABSHP": ["bidirectional_voltage_translation"], "TCAL9538RSVR": ["bidirectional_voltage_translation", "5v_tolerant_io_ports"], "PCA9554PW,118": ["bidirectional_voltage_translation", "active_low_reset_input", "latched_outputs_with_high_current_drive"], "PCA9554APW,118": ["bidirectional_voltage_translation", "active_low_reset_input", "latched_outputs_with_high_current_drive"], "PCA9534PW,118": ["bidirectional_voltage_translation", "active_low_reset_input", "latched_outputs_with_high_current_drive"], "PCF8574DWR": ["bidirectional_voltage_translation", "low_standby_current", "active_low_reset_input", "polarity_inversion_register", "noise_filter_on_scl_sda"], "PCA9557PW,118": ["bidirectional_voltage_translation", "open_drain_interrupt_output", "latched_outputs_with_high_current_drive"], "TCA6408AQPWRQ1": ["low_standby_current", "5v_tolerant_io_ports"], "PCA9534APWR": ["bidirectional_voltage_translation", "active_low_reset_input"], "PCAL9538ABSHP": ["bidirectional_voltage_translation"], "PCA9538PW,118": ["bidirectional_voltage_translation", "latched_outputs_with_high_current_drive"], "PCA9538BS,118": ["bidirectional_voltage_translation", "latched_outputs_with_high_current_drive"], "PCA9554PWR": ["bidirectional_voltage_translation", "low_standby_current", "active_low_reset_input", "noise_filter_on_scl_sda"], "PCA9500BS,118": ["bidirectional_voltage_translation", "active_low_reset_input", "open_drain_interrupt_output", "polarity_inversion_register", "latched_outputs_with_high_current_drive"], "PCF8574AN": ["bidirectional_voltage_translation", "low_standby_current", "5v_tolerant_io_ports", "400khz_fast_i2c_bus", "hardware_address_pin", "active_low_reset_input", "input_output_configuration_register", "polarity_inversion_register", "noise_filter_on_scl_sda"], "PI4IOE5V9554LEX": ["bidirectional_voltage_translation", "active_low_reset_input", "latched_outputs_with_high_current_drive", "latch_up_performance_exceeds_100ma_per_jesd78_class_ii"], "TCA9554ADBR": ["bidirectional_voltage_translation", "active_low_reset_input"], "TCA9554ADWR": ["bidirectional_voltage_translation", "active_low_reset_input"], "TCAL6408PWR": ["bidirectional_voltage_translation", "5v_tolerant_io_ports", "no_glitch_on_power_up"], "TCA9554ADBQR": ["bidirectional_voltage_translation", "active_low_reset_input"], "TCA9554DWR": ["bidirectional_voltage_translation", "low_standby_current", "active_low_reset_input"], "TCA9554DBR": ["bidirectional_voltage_translation", "low_standby_current", "active_low_reset_input"], "MCP23S09T-E/MG": ["smbus_compatibility", "bidirectional_voltage_translation", "no_glitch_on_power_up", "noise_filter_on_scl_sda", "latched_outputs_with_high_current_drive", "latch_up_performance_exceeds_100ma_per_jesd78_class_ii"], "MCP23S09-E/MG": ["smbus_compatibility", "bidirectional_voltage_translation", "no_glitch_on_power_up", "noise_filter_on_scl_sda", "latched_outputs_with_high_current_drive", "latch_up_performance_exceeds_100ma_per_jesd78_class_ii"], "TCA9554DBQR": ["bidirectional_voltage_translation", "low_standby_current", "active_low_reset_input"], "PCA9557DR": ["bidirectional_voltage_translation", "open_drain_interrupt_output"], "PCA9538APWJ": ["bidirectional_voltage_translation"], "TCAL9538PWR": ["bidirectional_voltage_translation", "5v_tolerant_io_ports"], "PCAL9538APWJ": ["bidirectional_voltage_translation"], "TCAL9538DTUR": ["bidirectional_voltage_translation", "5v_tolerant_io_ports"], "PCA9554ARGVR": ["bidirectional_voltage_translation", "low_standby_current", "active_low_reset_input", "noise_filter_on_scl_sda"], "PCA9500PW,118": ["bidirectional_voltage_translation", "active_low_reset_input", "open_drain_interrupt_output", "polarity_inversion_register", "latched_outputs_with_high_current_drive"]};
+const ADGQ={"74HC4051BQ,115": ["serial_control_interface", "any_switch_configuration", "small_package_size", "compatible_with_i2c_standard", "external_address_pins", "all_channels_off_at_power_up", "leakage_currents", "dynamic_characteristics_t_on", "dynamic_characteristics_t_off", "dynamic_characteristics_break_before_make_time_delay", "dynamic_characteristics_charge_injection"], "SN74LV4051APWR": ["serial_control_interface", "low_on_resistance", "compatible_with_i2c_standard", "external_address_pins", "channel_control_by_8_bit_word", "all_channels_off_at_power_up", "leakage_currents"], "MC74HC4051ADR2G": ["serial_control_interface", "any_switch_configuration", "compatible_with_i2c_standard", "external_address_pins", "leakage_currents"], "CD74HC4051M96": ["serial_control_interface", "any_switch_configuration", "compatible_with_i2c_standard", "channel_control_by_8_bit_word", "all_channels_off_at_power_up", "leakage_currents"], "SN74HC4851PWR": ["serial_control_interface", "any_switch_configuration", "break_before_make_switching", "compatible_with_i2c_standard", "all_channels_off_at_power_up", "leakage_currents", "dynamic_characteristics_break_before_make_time_delay", "dynamic_characteristics_charge_injection"], "TMUX1308QPWRQ1": ["serial_control_interface", "any_switch_configuration", "compatible_with_i2c_standard", "channel_control_by_8_bit_word", "all_channels_off_at_power_up"], "MC14051BDR2G": ["serial_control_interface", "any_switch_configuration", "compatible_with_i2c_standard", "external_address_pins", "all_channels_off_at_power_up", "leakage_currents"], "TMUX1208QRSVRQ1": ["serial_control_interface", "any_switch_configuration", "compatible_with_i2c_standard", "channel_control_by_8_bit_word", "all_channels_off_at_power_up", "leakage_currents"], "NX3L4051PW,118": ["serial_control_interface", "compatible_with_i2c_standard", "external_address_pins", "all_channels_off_at_power_up", "leakage_currents", "dynamic_characteristics_t_on", "dynamic_characteristics_t_off", "dynamic_characteristics_break_before_make_time_delay", "dynamic_characteristics_charge_injection"], "DG4051EEQ-T1-GE3": ["serial_control_interface", "compatible_with_i2c_standard", "channel_control_by_8_bit_word", "leakage_currents"], "DG4051EEN-T1-GE4": ["serial_control_interface", "compatible_with_i2c_standard", "channel_control_by_8_bit_word", "leakage_currents"], "NX3L4051HRZ": ["serial_control_interface", "any_switch_configuration", "compatible_with_i2c_standard", "external_address_pins", "channel_control_by_8_bit_word", "all_channels_off_at_power_up"], "NX3L4051PW-Q100J": ["serial_control_interface", "any_switch_configuration", "compatible_with_i2c_standard", "external_address_pins", "all_channels_off_at_power_up", "leakage_currents"], "DG408LEDY-T1-GE3": ["serial_control_interface", "any_switch_configuration", "compatible_with_i2c_standard", "channel_control_by_8_bit_word", "leakage_currents"], "DG408LEDQ-T1-GE3": ["serial_control_interface", "any_switch_configuration", "compatible_with_i2c_standard", "channel_control_by_8_bit_word"], "DG408DY-E3": ["serial_control_interface", "any_switch_configuration", "compatible_with_i2c_standard", "channel_control_by_8_bit_word"], "TMUX1108PWR": ["serial_control_interface", "any_switch_configuration", "compatible_with_i2c_standard", "channel_control_by_8_bit_word", "all_channels_off_at_power_up"], "ADG708BRUZ-REEL7": ["serial_control_interface", "any_switch_configuration", "compatible_with_i2c_standard", "channel_control_by_8_bit_word", "all_channels_off_at_power_up", "dynamic_characteristics_t_on", "dynamic_characteristics_t_off"], "CD4051BPWR": ["serial_control_interface", "any_switch_configuration", "compatible_with_i2c_standard", "external_address_pins", "channel_control_by_8_bit_word", "all_channels_off_at_power_up", "leakage_currents"], "CD4051BE": ["serial_control_interface", "any_switch_configuration", "compatible_with_i2c_standard", "channel_control_by_8_bit_word", "leakage_currents"]};
+const LT={i2c_interface:"I²C 인터페이스",smbus_compatibility:"SMBus 호환","8_bit_io_expansion":"8비트 I/O",bidirectional_voltage_translation:"양방향 전압 변환",low_standby_current:"대기전류 ≤1 µA","5v_tolerant_io_ports":"5 V 허용 I/O","400khz_fast_i2c_bus":"400 kHz I²C",hardware_address_pin:"HW 주소 핀",active_low_reset_input:"RESET 입력",open_drain_interrupt_output:"INT 오픈드레인",input_output_configuration_register:"I/O 설정 레지스터",polarity_inversion_register:"극성반전 레지스터",internal_power_on_reset:"내부 POR",power_up_with_all_channels_as_inputs:"전원 인가 시 입력",no_glitch_on_power_up:"전원 인가 글리치 없음",noise_filter_on_scl_sda:"SCL/SDA 노이즈 필터",latched_outputs_with_high_current_drive:"고전류 래치 출력",latch_up_performance_exceeds_100ma_per_jesd78_class_ii:"래치업 >100 mA",
+serial_control_interface:"2-wire 직렬 제어",single_supply_operation:"단일전원 3/5 V",low_on_resistance:"Ron ≤2.5 Ω",any_switch_configuration:"임의 스위치 조합",break_before_make_switching:"BBM 스위칭",small_package_size:"16-TSSOP",compatible_with_i2c_standard:"I²C 호환",external_address_pins:"주소 핀 A0/A1",channel_control_by_8_bit_word:"8비트 워드 제어",all_channels_off_at_power_up:"전원 인가 시 전체 OFF",on_resistance_match_between_channels:"Ron 매칭 ≤0.4 Ω",on_resistance_flatness:"Ron 평탄도 ≤0.75 Ω",leakage_currents:"누설 ≤0.01 nA",logic_input_high_voltage:"V<sub>INH</sub> 조건",logic_input_low_voltage:"V<sub>INL</sub> ≤0.4 V",logic_output_low_voltage:"V<sub>OL</sub> ≤0.4 V",dynamic_characteristics_t_on:"t<sub>ON</sub> ≤95 ns",dynamic_characteristics_t_off:"t<sub>OFF</sub> ≤85 ns",dynamic_characteristics_break_before_make_time_delay:"t<sub>BBM</sub> 조건",dynamic_characteristics_charge_injection:"전하주입 ≤3 pC"};
+
+const STEPS=[["대상 부품·연결관계","DSM 이웃 탐색"],["호환성 제약조건","API·규격서 → 제약"],["후보군 수집","카테고리+키워드"],["호환성 평가","1차 API · 2차 규격서"],["조달성 평가","의사결정표·SC"]];
+
+const CASES={
+ tca:{
+  mpn:"TCA6408APWR", desc:"TI · I²C 8비트 I/O 확장기 · 16-TSSOP",
+  funnel:[["후보 수집",306],["1차 통과",97],["규격서 판정",53],["최종 호환",8],["최종 대안",1]],
+  funnelAt:[-1,-1,0,3,4],
+  s1:{src:"통합 DSM 224×224 인접행렬 (값=1인 연결)",n:12,unit:"개 이웃 부품",
+      list:["430450200","430451600","430452400","ADG728BRUZ","LTC6813HLWE-1#3ZZPBF","M24M02-DWMN3TP/K","MCMR06X1002FTL","MCMR06X1201FTL","MCP9800A0T-M/OT","RCA06030000ZSEA","LTC6813HLWE-1#3ZZPBF-ND","TSW-110-07-G-D"]},
+  s2:{src:"대상+이웃 13개 MPN DigiKey 조회 · 대상 규격서에서 Qwen-VL 도출",total:19,
+      groups:[["Interface",6,["I²C 인터페이스","SMBus 호환","400 kHz Fast I²C","HW 주소 핀"]],
+              ["Feature",10,["INT 오픈드레인 출력","RESET 입력","극성반전 레지스터","내부 POR"]],
+              ["Numeric",3,["핀 수 = 16","대기전류 ≤1 µA","래치업 >100 mA"]]]},
+  s3:{cat:"749 · I/O Expanders",catTotal:1173,catGot:299,kw:"TCA6408",kwGot:9,merged:306,
+      note:"API 1회 조회 상한(300개) 때문에 카테고리 경로만으로는 누락이 생겨, 같은 부품군 키워드 검색을 병행해 합칩니다."},
+  s4:{first:["핀 수 = 16 (API Package/Case)",306,97],judged:53,skipped:44,pass:8,q:TCAQ,keys:18},
+  s5:{qty:100,rows:[
+      ["TCA6408APWR",0.79932,16,10371,64.00,1],
+      ["PCA6408AHKX",0.59096,16,4914,35.69],["PCAL6408AHKX",0.64370,16,33399,18.41],["PCA6408ABSHP",0.67313,30,14555,61.31],
+      ["TCA6408ARGTR",0.71799,16,26893,36.13],["PCA6408APW,118",0.75081,16,38436,30.95],["PCAL6408APWJ",0.76660,16,19192,50.83],
+      ["PCAL6408ABSHP",0.74520,30,15368,72.08],["PCAL6408AEX1Z",0.74923,30,6618,80.61]],
+      verdict:"PCAL6408AHKX · SC 18.41 (원본 대비 단가 −19.5%, 재고 3.2배)"}
+ },
+ adg:{
+  mpn:"ADG728BRUZ", desc:"ADI · I²C 8:1 아날로그 매트릭스 스위치 · 16-TSSOP",
+  funnel:[["후보 수집",304],["규격서 판정",24],["최종 호환",1]],
+  funnelAt:[-1,-1,0,2,2],
+  s1:{src:"DSM 서브그래프 IC100_1 (net 53개, 핀 단위 연결)",n:26,unit:"개 이웃 인스턴스 · 고유 MPN 9종",
+      list:["ADG728BRUZ ×2 (IC101_1, IC104_1)","CGA3E2X7R2A103K080AA ×8","ERJ-3EKF1000V ×8","MCMR06X1201FTL ×2","RCA06030000ZSEA ×2","AD8628ARTZ-R2","MCP9800A0T-M/OT","M24M02-DWMN3TP/K","TCA6408APWR"]},
+  s2:{src:"넷리스트-핀맵 교차대조로 이웃과의 정합 조건 역산 (M1–M6)",total:6,
+      groups:[["Interface",2,["M1 I²C 제어 · 8:1 단일 출력","M5 HW 주소선 ≥2개 (A0/A1 스트랩)"]],
+              ["Feature",1,["M6 Rail-to-rail 신호 범위"]],
+              ["Numeric",3,["M2 16핀 패키지","M3 2.7–5.5 V ⊆ 공급전압","M4 −40–85 °C ⊆ 동작온도"]]]},
+  s3:{cat:"747 · Analog Switches, Mux (8:1 필터)",catTotal:1322,catGot:300,kw:"ADG72x·ADG1608·MAX1466x 등 부품군",kwGot:4,merged:304,
+      note:"카테고리에 'I²C 여부' 파라미터가 없어 8:1 멀티플렉서 대부분이 병렬 주소 제어 제품입니다. 부품군 직접 조회 경로가 필요한 이유입니다."},
+  s4:{judged:24,pass:1,q:ADGQ,keys:20,manual:[
+      ["ADG728WBRUZ-REEL7",[],"동일 다이 자동차 등급 · M1–M6 전부 만족"],
+      ["ADG1608BRUZ",["M1"],"병렬 3비트 주소 제어 (I²C 아님)"],
+      ["MAX14661ETI+T",["M1","M2"],"16:2 구조 · 28-WFQFN"],
+      ["ADG729BRUZ",["M1"],"Dual 4:1 · 공통 출력 2개"]]},
+  s5:{qty:100,rows:[["ADG728BRUZ",4.39198,39,277,null,1],["ADG728WBRUZ-REEL7",5.0168,39,379,null]],
+      ref:["MAX14661ETI+T",8.0028,11,3766],
+      verdict:"ADG728WBRUZ-REEL7 · 유일한 드롭인 (단가 +14.2%, 리드타임 개선 없음)"}
+ }
+};
+
+let cur="tca", step=0, maxDone=-1, timer=null;
+const $=s=>document.querySelector(s);
+
+function renderParts(){
+  $("#parts").innerHTML=Object.entries(CASES).map(([k,c])=>`<button class="part" type="button" id="part-${k}" data-k="${k}" aria-pressed="${k===cur}"><span class="mono">${c.mpn}</span><small>${c.desc}</small></button>`).join("");
+  document.querySelectorAll(".part").forEach(b=>b.onclick=()=>{stop();cur=b.dataset.k;step=0;maxDone=-1;renderAll();});
+}
+function renderSteps(){
+  $("#steps").innerHTML=STEPS.map((s,i)=>`<button class="step ${i===step?'cur':''} ${i<=maxDone&&i!==step?'done':''}" type="button" id="step-${i}" data-i="${i}"><i>${i<=maxDone&&i!==step?'✓':i+1}</i><b>${s[0]}</b><small>${s[1]}</small></button>`).join("");
+  document.querySelectorAll(".step").forEach(b=>b.onclick=()=>{stop();go(+b.dataset.i);});
+}
+function renderFunnel(){
+  const c=CASES[cur], mx=c.funnel[0][1], on=c.funnelAt[step];
+  $("#funnel").innerHTML=c.funnel.map((f,i)=>`<div class="frow ${i<=on?'on':''} ${i===c.funnel.length-1?'last':''}"><span>${f[0]}</span><div class="fbar" style="width:${i<=on?Math.max(3,Math.sqrt(f[1]/mx)*100):0}%"></div><b>${i<=on?f[1]:'·'}</b></div>`).join("");
+}
+const fmt=n=>n.toLocaleString("en-US");
+function dotGrid(q,pref){
+  return `<div class="dots">${Object.entries(q).map(([m,f])=>`<span class="dot ${f.length?'':'p'}" tabindex="0" data-m="${m}" data-pref="${pref}" title="${m}"></span>`).join("")}</div>`;
+}
+function panel(){
+  const c=CASES[cur], P=$("#panel"); let h="";
+  if(step===0){const s=c.s1;
+    h=`<div class="ph"><h2>Step 1 · 대상 부품과 연결 관계 식별</h2><span class="src">${s.src}</span></div>
+    <div class="row"><div class="kv"><div class="lbl">대상 부품 (사용자 입력)</div><div class="mono">${c.mpn}</div><small style="color:var(--sub)">${c.desc}</small></div>
+    <div class="kv"><div class="lbl">자동 식별된 이웃</div><div><span class="big">${s.n}</span> ${s.unit}</div></div></div>
+    <div class="lbl">직접 연결된 부품</div><div class="chips">${s.list.map(x=>`<span class="chip mono">${x}</span>`).join("")}</div>`;}
+  if(step===1){const s=c.s2;
+    h=`<div class="ph"><h2>Step 2–3 · 사양 조회와 호환성 제약조건 정의</h2><span class="src">${s.src}</span></div>
+    <div class="row"><div class="kv" style="flex:0 0 auto"><div class="lbl">생성된 제약조건</div><div><span class="big">${s.total}</span> 개</div></div>
+    <div class="cgrp" style="flex:1">${s.groups.map(g=>`<div class="cg"><h4>${g[0]} <span class="tag">${g[1]}</span></h4><ul>${g[2].map(x=>`<li>${x}</li>`).join("")}</ul></div>`).join("")}</div></div>
+    <div class="info">${cur==="tca"?"기능형 18개는 대상 부품 규격서를 Vision LLM(Qwen-VL)이 읽어 자동 도출했습니다. 각 그룹은 대표 항목만 표시합니다.":"이웃 8종과 공유하는 VDD 레일·I²C 버스·주소선 스트랩을 넷리스트에서 역추적해 만든 조건입니다."}</div>`;}
+  if(step===2){const s=c.s3;
+    h=`<div class="ph"><h2>Step 4-1 · 대체부품 후보군 수집</h2><span class="src">DigiKey KeywordSearch (CategoryFilter / Keywords)</span></div>
+    <div class="flow">
+      <div class="kv"><div class="lbl">Category 검색 · ${s.cat}</div><div><span class="big">${s.catGot}</span> / ${fmt(s.catTotal)} 개 회수</div></div>
+      <span class="arrow">+</span>
+      <div class="kv"><div class="lbl">Keyword 검색 · ${s.kw}</div><div><span class="big">${s.kwGot}</span> 개</div></div>
+      <span class="arrow">→</span>
+      <div class="kv" style="border-color:var(--blue)"><div class="lbl">결합·중복 제거</div><div><span class="big">${s.merged}</span> 개 후보</div></div>
+    </div><div class="info">${s.note}</div>`;}
+  if(step===3){const s=c.s4;
+    if(cur==="tca"){
+      h=`<div class="ph"><h2>Step 4-2 · 호환성 평가 (1차 API → 2차 규격서)</h2><span class="src">전 조건 AND · 하나라도 불만족 시 탈락</span></div>
+      <div class="flow"><div class="kv"><div class="lbl">1차 · ${s.first[0]}</div><div><span class="num">${s.first[1]} → </span><span class="big">${s.first[2]}</span></div></div>
+      <span class="arrow">→</span><div class="kv"><div class="lbl">2차 · 규격서 판정 (기능형 ${s.keys}개)</div><div><span class="big">${s.judged}</span> 판정 · 규격서 미확보 ${s.skipped}개 제외</div></div>
+      <span class="arrow">→</span><div class="kv" style="border-color:var(--pass)"><div class="lbl">모든 조건 만족</div><div><span class="big" style="color:var(--pass)">${s.pass}</span> 개</div></div></div>
+      <div class="lbl">규격서 판정 ${s.judged}개 · 칸을 누르면 불만족 조건이 보입니다</div>${dotGrid(s.q,"t")}
+      <div class="info" id="dinfo">초록 = 18개 기능 조건 모두 만족 · 주황 = 1개 이상 불만족</div>`;
+    }else{
+      h=`<div class="ph"><h2>Step 4-2 · 호환성 평가</h2><span class="src">전 조건 AND · 하나라도 불만족 시 탈락</span></div>
+      <div class="split"><div><div class="lbl">카테고리 경로 · Qwen-VL 규격서 판정 20개 → <span style="color:var(--fail)">0개 통과</span></div>${dotGrid(s.q,"a")}
+        <div class="info" id="dinfo" style="margin-top:6px">20개 모두 '2-wire 직렬 제어' 불만족. 74HC4051류 병렬 주소 제어 멀티플렉서였습니다.</div></div>
+      <div><div class="lbl">부품군 경로 · 규격서 원문 검토 4개 <span class="tag m">수동 확인</span></div>
+        <table><tbody>${s.manual.map(r=>`<tr><td class="mono">${r[0]}</td><td>${r[1].length?`<span class="pill f">${r[1].join("·")} 불만족</span>`:`<span class="pill p">통과</span>`}</td></tr><tr><td colspan="2" style="text-align:left;color:var(--sub);font-size:10.5px;padding-top:0">${r[2]}</td></tr>`).join("")}</tbody></table></div></div>`;
+    }}
+  if(step===4){const s=c.s5, base=s.rows[0][1];
+    const rows=[...s.rows].sort((a,b)=>(a[4]??(a[5]?1e9:0))-(b[4]??(b[5]?1e9:0)));
+    const hasSC=s.rows[0][4]!=null, mxSC=hasSC?Math.max(...s.rows.map(r=>r[4])):1;
+    let rk=0;
+    h=`<div class="ph"><h2>Step 5 · 조달성 평가와 최종 대안 선정</h2><span class="src">가격 @${s.qty}개 · 리드타임 · DigiKey 재고${hasSC?" → T-score 합산 SC = T<sub>가격</sub> + T<sub>리드타임</sub> − T<sub>재고</sub> (낮을수록 우수)":""}</span></div>
+    <div class="tbl"><table><thead><tr><th>${hasSC?"순위":"구분"}</th><th>부품</th><th>가격 (USD)</th><th>원본 대비</th><th>리드타임</th><th>재고</th>${hasSC?"<th style='text-align:left'>SC</th>":""}</tr></thead><tbody>
+    ${rows.map(r=>{const d=(r[1]/base-1)*100, isBase=r[5]; if(!isBase)rk++; const top=!isBase&&rk===1;
+      return `<tr class="${isBase?'base':''} ${top?'top':''}"><td>${isBase?'원본':(hasSC?rk:'대체')}</td><td class="mono">${r[0]}</td><td>${r[1].toFixed(5)}</td><td class="${isBase?'':(d<0?'neg':'pos')}">${isBase?'—':(d>0?'+':'−')+Math.abs(d).toFixed(1)+'%'}</td><td>${r[2]}주</td><td>${fmt(r[3])}</td>${hasSC?`<td style="text-align:left"><span class="scb" style="width:${r[4]/mxSC*60}px"></span>${r[4].toFixed(2)}</td>`:""}</tr>`}).join("")}
+    ${s.ref?`<tr><td style="color:var(--sub)">참고</td><td class="mono" style="color:var(--sub)">${s.ref[0]}</td><td>${s.ref[1].toFixed(5)}</td><td class="pos">+${((s.ref[1]/base-1)*100).toFixed(1)}%</td><td>${s.ref[2]}주</td><td>${fmt(s.ref[3])}</td></tr>`:""}
+    </tbody></table></div>
+    <div class="info"><b>최종 대안</b> · ${s.verdict}${cur==="adg"?"<br>후보가 1개라 SC 순위는 산출하지 않았습니다. 참고 행의 MAX14661은 리드타임 11주지만 M1·M2 불만족으로 보드 재설계가 필요합니다.":""}</div>`;}
+  P.innerHTML=h; P.classList.remove("fade"); void P.offsetWidth; P.classList.add("fade");
+  P.querySelectorAll(".dot").forEach(d=>{const show=()=>{P.querySelectorAll(".dot").forEach(x=>x.classList.remove("sel"));d.classList.add("sel");
+    const q=d.dataset.pref==="t"?TCAQ:ADGQ, f=q[d.dataset.m];
+    $("#dinfo").innerHTML=`<span class="mono">${d.dataset.m}</span> · ${f.length?`<span class="pill f">불만족 ${f.length}</span> ${f.map(k=>LT[k]||k).join(", ")}`:`<span class="pill p">전 조건 만족</span>`}`;};
+    d.onclick=show; d.onmouseenter=show; d.onfocus=show;});
+}
+function go(i){step=i; maxDone=Math.max(maxDone,i); renderAll();}
+function renderAll(){renderParts();renderSteps();renderFunnel();panel();}
+function stop(){if(timer){clearInterval(timer);timer=null;$("#run").textContent="▶ 전체 실행";}}
+$("#run").onclick=()=>{ if(timer){stop();return;} step=0;maxDone=0;renderAll();$("#run").textContent="■ 정지";
+  timer=setInterval(()=>{ if(step>=4){stop();return;} go(step+1); },1800); };
+$("#next").onclick=()=>{stop();go((step+1)%5);};
+(function init(){const h=location.hash.slice(1); const m=h.match(/^(tca|adg)(\d)?$/);
+  if(m){cur=m[1]; if(m[2]){step=Math.min(4,+m[2]-1); maxDone=step;}}
+  renderAll();})();
+</script>
+</body></html>
